@@ -60,9 +60,11 @@ if (target_os == "android" || target_os == "win") {
 # disable passthrough audio codecs
 enable_platform_dts_audio = false
 
-# disabled the use of the context snapshot
-# see https://github.com/uazo/cromite/pull/317 for context
-use_v8_context_snapshot = false
+# re-enabled the use of the context snapshot (2026-10-17) to cut renderer
+# startup CPU (avoids re-running JS to rebuild the context on cold start / new tabs)
+# see https://github.com/uazo/cromite/pull/317 for the original issue:
+# if that crash scenario reappears, set this back to false
+use_v8_context_snapshot = true
 
 # disable automatic update of sync-related cookies
 # initial commit: https://source.chromium.org/chromium/chromium/src/+/fd9a841f7a63b9f5510f6b713d9c833d259c63ad
