@@ -60,7 +60,6 @@ Add-custom-tab-intents-privacy-option.patch
 Disable-privacy-sandbox.patch
 History-number-of-days-privacy-setting.patch
 Disable-fetching-of-all-field-trials.patch
-Disable-periodic-background-sync.patch
 Disable-plugins-enumeration.patch
 dns-send-IPv6-connectivity-probes-to-RIPE-DNS.patch
 Add-flag-to-disable-IPv6-probes.patch
