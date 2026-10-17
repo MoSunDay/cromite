@@ -3,6 +3,31 @@
 > 规则见 `dev-memory-timeline.mdc.rule`（头部不可修改）。
 > 每个已执行的 skill/任务按下列格式登记，状态变化或新目标产生时立即更新。
 
+## [2026-10-17] 全量补丁本地验证 + Docker 构建 153.0.8010.37（执行会话）
+**Status**: In Progress（编译中，72,350 步）
+**Objective**: push 全部提交后以官方镜像本地构建 Cromite Linux 153.0.8010.37，全量验证 328 补丁可应用性，产出可部署 chrome-lin64
+**Changes**:
+- push：SSH key 免 PAT 直接 `git push git@github.com:MoSunDay/cromite.git`，6+1 commit 已上远端（3724efc6..7c71dd9e）；fork Actions 未启用（runs total=0），CI 验证由本地构建替代
+- 镜像：Docker Hub 无 153 版 cromite-build（止步 147）→ 用 `uazo/chromium:153.0.8010.37`（21.3GB 源码镜像）；dockerd 配 systemd socks5 代理后 `docker pull` 由 daemon 承担（会话杀不掉）
+- **git am 疑难**：`Disable-update-scheduler.patch` hunk old 侧缺尾随上下文行 → git 2.34.1 对"无尾上下文且非文件尾"的 hunk 一律拒配（GNU patch 可打）；修复=补一行 `case TaskIds.NOTIFICATION_TRIGGER_JOB_ID:` 且计数 8→9（commit `7c71dd9e` 已推送）
+- 补丁全量验证：容器内按清单 git am 328/328 全通过（287 新应用 + 41 复检跳过；跳过检测须用 `git rev-list --count --grep=`，`git log --grep` 无匹配也退 0）
+- 工具链补齐：clang 24（tarball 手动装 + cr_build_revision stamp）、chrome-linux PGO profdata 327MB 与 v8 builtins x64.profile（GCS 直链 curl，绕过 vpython/gsutil）
+- 编译：`buildtools/linux64/gn`（depot_tools gn wrapper 缺 bootstrap 不可用）+ `siso.py ninja -C out/lin64 chrome chrome_sandbox --offline`
+**Next**:
+- 编译完成后按 release.yaml 清单打包 chrome-lin64.tar.gz → scp amos（root@192.168.31.196）原子换 /opt/cromite（备份 .bak）→ `--version` 冒烟 + chrome://gpu、#freezing-without-battery-saver 验证
+
+## [2026-10-17] 远程切换 SSH 并启动本地构建发布流水线
+**Status**: In Progress
+**Objective**: 按用户指示将 git 远程改为 SSH（github.com HTTPS 被墙、SSH 经 127.0.0.1:1080 SOCKS 可达），完成提交 push；并执行"构建应用发布到 192.168.31.196"
+**Changes**:
+- `git remote set-url origin git@github.com:MoSunDay/cromite.git`；提交 `7c78b47d`（agent 记忆系统 7 文件）并 push 成功——此前"超时"的 HTTPS push 实际已服务端完成（6 commit 在远端）
+- **关键发现**：fork 的 GitHub Actions 从未启用（API total_count=0），push 不会触发任何 CI；check-git-apply 兜底假设失效，全量 328 补丁验证只能靠本地容器构建
+- 网络拓扑：直连可达 raw.githubusercontent/objects.githubusercontent/codeload/storage.googleapis/ghcr.io/docker.m.daocloud.io；被墙需走 SOCKS(1080)：github.com/hub.docker.com/auth.docker.io/chromium.googlesource；dockerd 已加 systemd 代理（socks5://127.0.0.1:1080）可拉 Docker Hub
+- 构建路径：192.168.31.196(amos) `/opt/cromite` 现部署 Cromite 153.0.8010.37 Linux 版（9/15 构建）；局域网无自建 runner、无 Chromium 源码树 → 采用 uazo 公开镜像 `uazo/chromium:153.0.8010.37`（21.3GB，经代理 ~3-5MB/s 拉取中）
+- 本地编排脚本 `/root/cromite-build/`（04-run.sh 全自动）：容器内 squash 5 个嵌套仓库（v8/skia/perfetto/devtools-frontend/boringssl）→ git am 应用本 fork 全部补丁 → gn gen（含 use_v8_context_snapshot=true）→ siso ninja out/lin64 chrome chrome_sandbox → 03-deploy.sh rsync 至 amos 原子换目录（备份 /opt/cromite.bak-*，附 BUILD_COMMIT/RELEASE）
+- 本机构建资源：16 核 / 62G RAM / 388G 空闲
+**Next**:
+- 盯 `/root/cromite-build/pipeline.log`：镜像拉完自动 apply+build；apply 若有 FAILED 补丁需回仓库修复再 push；build 完跑 03-deploy.sh 并在 amos 验证 `--version`
 ## [2026-10-17] CPU 优化批次（#4/#6/#7）执行核验与交付收尾
 **Status**: Completed (push 阻塞-无外网)
 **Objective**: 对 4 笔已落盘 commit（`1ba6f466`/`b3ca8fc3`/`88b39e87`/`9866a195`）做交付前全量本地核验，并尝试 push 触发 CI 硬闸门
@@ -95,3 +120,17 @@
 - `11507ac1`/`e3e366be` CI 自动再生 docs/PATCHES.md
 **Next**:
 - 跟进 153 后续小版本 rebase 与用户反馈
+
+## 2026-10-17 14:58 — Cromite 构建工具链修复 & build6 启动 & 自动部署武装
+**类型**: build/pipeline | **状态**: In Progress
+- 根因: chr-source 镜像 `gclient sync --nohooks` 跳过全部 hook → clang/PGO/V8-builtins-pgo 全缺; Python urllib 不支持 socks5 → 装 privoxy(HTTP)→SOCKS 桥 `0.0.0.0:8118`(宿主 systemd 常驻, 修掉 Debian 配置自带 listen-address 双绑死锁)。
+- 修复动作: tools/clang/scripts/update.py(167M clang24)、chrome/build/pgo_profiles(327M profdata via update_pgo_profiles.py)、v8/tools/builtins-pgo/download_profiles.py(19M)、devtools sync_rollup_libs.py(exit 0)。
+- gn gen 成功: 32061 targets; build6 = siso ninja chrome chrome_sandbox --offline, 75k steps, ~2-3h, log=/tmp/build6.log(容器)。
+- 自动化: 容器 watchdog 触发 out/lin64/.build-done → 宿主 systemd cromite-deploy.path → 03-deploy.sh(rsync→amos 备份换目录→验证), deploy.log 落 /root/cromite-build/。
+- vpython 9 spec 重装(PATH 缺失导致首轮全 FAIL, 已带 proxy 重跑)。
+
+## 2026-10-17 15:35 — M153 补丁失效修复: Disable-periodic-background-sync 移除
+**类型**: patch-fix | **状态**: Done
+- build6 在 23384/61240 处失败: cromite_flags/.../Disable-periodic-background-sync.inc 引用的 blink::features::kPeriodicBackgroundSync 在 M153 已被上游删除(仅剩 use_counter/mojom 枚举)。
+- 处置: 容器树内 git rm 两个 .inc(318bcdb30b) + 仓库删除 build/patches/Disable-periodic-background-sync.patch 与清单行, commit 65c46a48 已推送; 补丁数 328→327。
+- build7 = siso 断点续跑(23k 步缓存有效), 完成后自动 touch .build-done → cromite-deploy.path 自动发布到 192.168.31.196。
