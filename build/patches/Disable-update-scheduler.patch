@@ -13,7 +13,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/background_task_scheduler/ChromeBackgroundTaskFactory.java b/chrome/android/java/src/org/chromium/chrome/browser/background_task_scheduler/ChromeBackgroundTaskFactory.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/background_task_scheduler/ChromeBackgroundTaskFactory.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/background_task_scheduler/ChromeBackgroundTaskFactory.java
-@@ -74,8 +74,8 @@ public class ChromeBackgroundTaskFactory implements BackgroundTaskFactory {
+@@ -74,9 +74,9 @@ public class ChromeBackgroundTaskFactory implements BackgroundTaskFactory {
              case TaskIds.WEBAPK_UPDATE_JOB_ID:
 -                return new WebApkUpdateTask();
 +                return null;
@@ -26,4 +26,5 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/background_task
              case TaskIds.NOTIFICATION_SCHEDULER_JOB_ID:
 -                return new NotificationSchedulerTask();
 +                return null;
+             case TaskIds.NOTIFICATION_TRIGGER_JOB_ID:
 --
