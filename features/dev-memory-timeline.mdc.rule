@@ -1,0 +1,4 @@
+---
+description: Timeline skill entry and tracking. Ensures every executed skill or task is logged in features/dev-memory-timeline.md in the defined format. Update the timeline immediately after task completion or blocking.
+alwaysApply: true
+---

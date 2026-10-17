@@ -1,0 +1,4 @@
+---
+description: Newsletter generation rule. Whenever the user requests a summary/report/newsletter, compile recent work from features/dev-memory-timeline.md into features/dev-memory-newsletter.md using the defined structure: '## Updates This Period', '## Key Changes', '## Issues and Risks', '## Next Release Plan'. Include 1-3 entries maximum.
+alwaysApply: true
+---

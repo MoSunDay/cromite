@@ -1,0 +1,4 @@
+---
+description: Local memory rule. Always read agents/memory/agent-local-memory.md before starting any task, and update it (Background & Goals, Repository Map, Recent Changes, Pending Work, Agent Notes) whenever repo state or work context changes.
+alwaysApply: true
+---
