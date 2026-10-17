@@ -142,3 +142,12 @@
 - 验证: --version OK; headless dump-dom + JS 引擎 OK(JS-OK); 旧版备份 /opt/cromite.bak-20261018-0026(991M)。
 - 坑: systemd PathExists 对持久 flag 会重复触发(path 单元连发 5 次部署, 备份目录堆积), 已 disable + rm flag; 首次 mv 到已存在 bak 目录会内嵌成子目录。
 - 会话容器与宿主 /root/cromite 为不同 overlay 视图, 宿主 auto-commit(99d6e569/583b613b)与我的 65c46a48 合流后被自动同步推送, 历史无冲突。
+
+## 2026-10-18 02:05 — amos 真机深度验证全绿: GPU 全硬解 + freezing flag 生效确认
+**类型**: verify | **状态**: Done
+- 部署产物验证（部署链 00:26 + 会话子代理 01:3x 两轮部署，现以已验证产物为准）：`cromite --version` = **Cromite 153.0.8010.37**；862MB chrome + SUID chrome_sandbox。
+- chrome://gpu（GUI+CDP）：Compositing / Rasterization / Video Decode / WebGL 全部 **Hardware accelerated**；ANGLE(OpenGL) → Mesa Intel UHD Graphics 615 (AML-KBL) OpenGL 4.6 Mesa 25.2.8；VA-API 解码暴露 h264 baseline/main/high（16x16~4096x4096）——优于预期（原按经验预期软解回退）。
+- chrome://flags/#freezing-without-battery-saver = **Default (disabled)** ✅ 补丁默认值在产物中生效。
+- 工具沉淀：`.build-tmp/verify_cdp.py`（~150 行纯函数式）— stdlib 手写 WebSocket 帧的最小 CDP 客户端，深度递归穿透 shadow DOM 抓 WebUI 文本；headless 模式 chrome:// 整体被拦，须 GUI 会话（amos :0 + lightdm XAUTHORITY）+ --remote-debugging-port。
+- 新坑记录：① 远端脚本内 `pkill -f /opt/cromite/chrome` 匹配到自身 cmdline 自杀（deploy.sh 已改 `pkill -x chrome`）；② python 三引号串内 `\n` 是转义，内嵌 JS 必须 `r"""`；③ amos 默认 zsh，`echo ===` 触发 `=cmd` 展开报 "== not found"。
+- amos 清理：备份收敛为 /opt/cromite.bak 单份（删 .bak-20261018-0026、.old.1792258275），/tmp 验证残留全清；根分区 79G/234G。
