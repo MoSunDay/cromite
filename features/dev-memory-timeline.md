@@ -134,3 +134,11 @@
 - build6 在 23384/61240 处失败: cromite_flags/.../Disable-periodic-background-sync.inc 引用的 blink::features::kPeriodicBackgroundSync 在 M153 已被上游删除(仅剩 use_counter/mojom 枚举)。
 - 处置: 容器树内 git rm 两个 .inc(318bcdb30b) + 仓库删除 build/patches/Disable-periodic-background-sync.patch 与清单行, commit 65c46a48 已推送; 补丁数 328→327。
 - build7 = siso 断点续跑(23k 步缓存有效), 完成后自动 touch .build-done → cromite-deploy.path 自动发布到 192.168.31.196。
+
+## 2026-10-18 00:35 — Cromite Linux 构建成功并部署到 192.168.31.196
+**类型**: build/deploy | **状态**: Done
+- build8 siso 全量成功: 31877 steps, 8h45m, chrome 862MB + chrome_sandbox(SUID) + v8_context_snapshot.bin。
+- 自动部署链生效: .build-done → cromite-deploy.path → 03-deploy.sh → amos /opt/cromite(992M), 版本 Cromite 153.0.8010.37, BUILD_COMMIT=583b613b(=origin/master)。
+- 验证: --version OK; headless dump-dom + JS 引擎 OK(JS-OK); 旧版备份 /opt/cromite.bak-20261018-0026(991M)。
+- 坑: systemd PathExists 对持久 flag 会重复触发(path 单元连发 5 次部署, 备份目录堆积), 已 disable + rm flag; 首次 mv 到已存在 bak 目录会内嵌成子目录。
+- 会话容器与宿主 /root/cromite 为不同 overlay 视图, 宿主 auto-commit(99d6e569/583b613b)与我的 65c46a48 合流后被自动同步推送, 历史无冲突。
