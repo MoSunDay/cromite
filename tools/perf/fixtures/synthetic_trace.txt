@@ -1,0 +1,31 @@
+# Synthetic perfetto systrace-format fixture for tools/perf/analyze_trace.py.
+# Consumed by: python3 tools/perf/analyze_trace.py --self-test
+#
+# Line format used below (perfetto systrace text):
+#   <task>_<pid>_S:<tid> [cpu] d..1  <ts_seconds>: sched_switch: k=v ...
+#
+# Expected results (kept in sync with --self-test):
+#   parse_sched_events  -> 9 events (6 sched_switch + 3 sched_waking), 2 skipped
+#   cpu_time_per_process -> renderer_A=3000000 us, browser=1000000 us, (swapper=0)
+#   top_wakeup_sources   -> [('browser', 'renderer_A', 2), ('AlarmManager', 'browser', 1)]
+#
+# CPU 0 timeline (on-cpu intervals end at the following sched_switch):
+#   10.0 -> 10.5   browser        ( 500000 us)
+#   10.5 -> 12.5   renderer_A     (2000000 us)
+swapper/0_0_S:0 [000] d..1  10.000000: sched_switch: prev_comm=swapper/0 prev_pid=0 prev_prio=120 prev_state=R next_comm=browser next_pid=100 next_prio=118
+browser_100_S:100 [000] d..1  10.500000: sched_switch: prev_comm=browser prev_pid=100 prev_prio=118 prev_state=R next_comm=renderer_A next_pid=200 next_prio=120
+renderer_A_200_S:200 [000] d..1  12.500000: sched_switch: prev_comm=renderer_A prev_pid=200 prev_prio=120 prev_state=S next_comm=swapper/0 next_pid=0 next_prio=120
+# CPU 1 timeline (on-cpu intervals end at the following sched_switch):
+#   20.0 -> 20.5   browser        ( 500000 us)
+#   20.5 -> 21.5   renderer_A     (1000000 us)
+swapper/1_0_S:1 [001] d..1  20.000000: sched_switch: prev_comm=swapper/1 prev_pid=0 prev_prio=120 prev_state=R next_comm=browser next_pid=100 next_prio=118
+browser_100_S:100 [001] d..1  20.500000: sched_switch: prev_comm=browser prev_pid=100 prev_prio=118 prev_state=R next_comm=renderer_A next_pid=200 next_prio=120
+renderer_A_200_S:200 [001] d..1  21.500000: sched_switch: prev_comm=renderer_A prev_pid=200 prev_prio=120 prev_state=S next_comm=swapper/1 next_pid=0 next_prio=120
+# sched_waking events: header task = waker, payload comm = target.
+#   browser wakes renderer_A twice, AlarmManager wakes browser once.
+browser_100_S:100 [000] d..2   9.900000: sched_waking: comm=renderer_A pid=200 prio=120 target_cpu=000
+browser_100_S:100 [001] d..2   9.950000: sched_waking: comm=renderer_A pid=200 prio=120 target_cpu=001
+AlarmManager_900_S:900 [002] d..2   9.990000: sched_waking: comm=browser pid=100 prio=118 target_cpu=000
+# Two garbage lines below must be skipped (and counted) by the parser.
+this line is completely unparseable garbage and must be skipped
+another garbage line mentioning sched_waking but without timestamp structure
