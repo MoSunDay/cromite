@@ -5,8 +5,8 @@ Subject: Enable HighEfficiencyMode by default
 Only valid for desktop platform: activation of auto freeze in
 background tabs with high CPU consumption, which is not visible from
 the ui and therefore not user controllable.
-The feature is controlled by the "freezing-without-battery-saver" flag
-active by default.
+The feature is controlled by the "freezing-without-battery-saver" flag,
+disabled by default: users can enable it in chrome://flags.
 
 License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
 ---
@@ -35,7 +35,7 @@ diff --git a/components/performance_manager/features.cc b/components/performance
  
 +CROMITE_FEATURE(kFreezingWithoutBatterySaver,
 +                "FreezingWithoutBatterySaver",
-+                base::FEATURE_ENABLED_BY_DEFAULT);
++                base::FEATURE_DISABLED_BY_DEFAULT);
 +
  BASE_FEATURE(kResourceAttributionIncludeOrigins,
               base::FEATURE_ENABLED_BY_DEFAULT);
